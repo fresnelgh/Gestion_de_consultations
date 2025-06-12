@@ -1,0 +1,19 @@
+import sqlite3
+
+def init_db():
+    conn = sqlite3.connect("consultations.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS consultations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient TEXT NOT NULL,
+            date TEXT NOT NULL,
+            symptomes TEXT,
+            traitement TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# À appeler au début du programme
+init_db()
