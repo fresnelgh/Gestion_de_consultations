@@ -110,7 +110,7 @@ def forgot_password():
 
 # À remplacer par ton email et mot de passe d'application
 EMAIL_SENDER = "fresnelktf@gmail.com"
-EMAIL_PASSWORD = "19042001@Cle1"
+EMAIL_PASSWORD = "nbor piph vtge zxvx"
 
 def send_reset_code(recipient_email, code):
     msg = EmailMessage()

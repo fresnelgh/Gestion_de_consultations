@@ -1,0 +1,10 @@
+Date: 14/6/2025
+Time: 1:51
+Phone Number: +237671239506
+Message: Hello, ceci est un message envoyé via Python !
+--------------------
+Date: 14/6/2025
+Time: 2:0
+Phone Number: +237671239506
+Message: Hello, ceci est un message envoyé via Python !
+--------------------
