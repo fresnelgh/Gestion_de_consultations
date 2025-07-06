@@ -2,11 +2,11 @@ import mysql.connector
 import hashlib
 from config.database import get_connection
 
-# Hachage du mot de passe
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Ajouter un utilisateur
+
 def add_user(full_name, email, password, role):
     try:
         conn = get_connection()
@@ -37,7 +37,7 @@ def get_user_by_email(email):
         print("Erreur lors de la récupération de l'utilisateur :", e)
         return None
 
-# Récupérer tous les utilisateurs
+
 def get_all_users():
     try:
         conn = get_connection()
@@ -50,7 +50,6 @@ def get_all_users():
         print("Erreur lors du chargement des utilisateurs :", e)
         return []
 
-# Mettre à jour le mot de passe
 def update_user_password(email, new_password):
     try:
         conn = get_connection()
@@ -89,3 +88,21 @@ def delete_user(user_id):
     except Exception as e:
         print("Erreur suppression utilisateur :", e)
         return False, "Erreur lors de la suppression."
+
+def update_personal_info(user_id, new_name, new_email, new_password=None):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        if new_password:
+            hashed_pwd = hash_password(new_password)
+            cursor.execute("UPDATE users SET full_name=%s, email=%s, password=%s WHERE id=%s",
+                           (new_name, new_email, hashed_pwd, user_id))
+        else:
+            cursor.execute("UPDATE users SET full_name=%s, email=%s WHERE id=%s",
+                           (new_name, new_email, user_id))
+        conn.commit()
+        conn.close()
+        return True, "Informations mises à jour avec succès."
+    except Exception as e:
+        print("Erreur update:", e)
+        return False, "Erreur lors de la mise à jour des informations."

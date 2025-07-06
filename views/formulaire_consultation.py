@@ -1,56 +1,102 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from models.model_consultations import ajouter_consultation
 
-def open_consultation_form():
+
+def open_consultation_form(refresh_callback=None):
     form = tk.Toplevel()
     form.title("Nouvelle Consultation")
-    form.geometry("400x500")
-    form.configure(bg="#1C1B21")
+    form.geometry("500x750")
+    form.configure(bg="#F0F2F5")
+    form.resizable(False, False)
 
-    label_style = {"fg": "white", "bg": "#1C1B21", "font": ("Helvetica", 10)}
-    entry_style = {"width": 40, "bg": "#2A2A2E", "fg": "white", "relief": "flat", "insertbackground": "white"}
+    # Style configuration
+    style = ttk.Style()
+    style.configure("TLabel", background="#F0F2F5", foreground="#333333", font=("Helvetica", 10))
+    style.configure("TEntry", fieldbackground="#FFFFFF", foreground="#333333", bordercolor="#CCCCCC", relief="flat")
+    style.configure("TButton", font=("Helvetica", 10, "bold"), padding=6)
+    style.map("TButton", background=[("active", "#3D8B7D"), ("!disabled", "#42A07C")],
+              foreground=[("!disabled", "white")])
 
-    tk.Label(form, text="Ajouter une consultation", font=("Helvetica", 14, "bold"), fg="white", bg="#1C1B21").pack(pady=20)
+    # Header Frame
+    header_frame = tk.Frame(form, bg="#42A07C")
+    header_frame.pack(fill="x", pady=(0, 20))
+    tk.Label(header_frame, text="Ajouter une consultation", font=("Helvetica", 16, "bold"),
+             fg="white", bg="#42A07C", padx=20, pady=15).pack()
 
-    # Nom du patient
-    tk.Label(form, text="Nom du patient", **label_style).pack(anchor="w", padx=20)
-    entry_patient = tk.Entry(form, **entry_style)
-    entry_patient.pack(padx=20, pady=5)
+    # Main Container
+    main_frame = tk.Frame(form, bg="#F0F2F5")
+    main_frame.pack(padx=30, pady=(0, 20), fill="both", expand=True)
 
-    # Date
-    tk.Label(form, text="Date (AAAA-MM-JJ)", **label_style).pack(anchor="w", padx=20)
-    entry_date = tk.Entry(form, **entry_style)
-    entry_date.pack(padx=20, pady=5)
+    # Form Fields
+    fields = [
+        ("Nom du patient", "entry"),
+        ("Date (AAAA-MM-JJ)", "entry"),
+        ("Heure d'arrivée (HH:MM)", "entry"),
+        ("Heure de départ (HH:MM)", "entry"),
+        ("Symptômes", "text"),
+        ("Traitement", "text"),
+        ("Posologie", "text")
+    ]
 
-    # Symptômes
-    tk.Label(form, text="Symptômes", **label_style).pack(anchor="w", padx=20)
-    entry_symptomes = tk.Text(form, height=4, width=30, bg="#2A2A2E", fg="white")
-    entry_symptomes.pack(padx=20, pady=5)
+    entries = {}
+    for i, (label, field_type) in enumerate(fields):
+        frame = tk.Frame(main_frame, bg="#F0F2F5")
+        frame.pack(fill="x", pady=(0, 10))
 
-    # Traitement
-    tk.Label(form, text="Traitement", **label_style).pack(anchor="w", padx=20)
-    entry_traitement = tk.Text(form, height=4, width=30, bg="#2A2A2E", fg="white")
-    entry_traitement.pack(padx=20, pady=5)
+        ttk.Label(frame, text=label).pack(anchor="w", padx=(0, 5))
+
+        if field_type == "entry":
+            entry = ttk.Entry(frame)
+            entry.pack(fill="x", ipady=4)
+        else:
+            entry = tk.Text(frame, height=4 if label != "Posologie" else 3,
+                            bg="white", fg="#333333", relief="solid", bd=1,
+                            font=("Helvetica", 10))
+            entry.pack(fill="x")
+
+        entries[label.split(" ")[0].lower()] = entry
+
+    # Button Frame
+    button_frame = tk.Frame(form, bg="#F0F2F5")
+    button_frame.pack(pady=(10, 20))
 
     def enregistrer():
-        patient = entry_patient.get()
-        date = entry_date.get()
-        symptomes = entry_symptomes.get("1.0", "end").strip()
-        traitement = entry_traitement.get("1.0", "end").strip()
+        data = {
+            'patient': entries['nom'].get(),
+            'date': entries['date'].get(),
+            'heure_arrivee': entries['heure'].get(),
+            'heure_depart': entries['heure'].get() if len(entries) > 3 else "",
+            'symptomes': entries['symptômes'].get("1.0", "end").strip(),
+            'traitement': entries['traitement'].get("1.0", "end").strip(),
+            'posologie': entries['posologie'].get("1.0", "end").strip()
+        }
 
-        if not patient or not date:
+        if not data['patient'] or not data['date']:
             messagebox.showwarning("Champs requis", "Le nom du patient et la date sont obligatoires.")
             return
 
-        success, msg = ajouter_consultation(date, patient, symptomes, traitement)
+        success, msg = ajouter_consultation(
+            data['date'], data['heure_arrivee'], data['heure_depart'],
+            data['patient'], data['symptomes'], data['traitement'], data['posologie']
+        )
+
         if success:
-            messagebox.showinfo("Succès", msg)
+            messagebox.showinfo("Succès", "Consultation enregistrée avec succès!")
             form.destroy()
+            if refresh_callback:
+                refresh_callback()
         else:
             messagebox.showerror("Erreur", msg)
 
-    tk.Button(form, text="Enregistrer", command=enregistrer, bg="#42A07C", fg="white",
-              font=("Helvetica", 10, "bold"), width=20).pack(pady=20)
+    ttk.Button(button_frame, text="Enregistrer", command=enregistrer, style="TButton").pack(side="left", padx=5)
+    ttk.Button(button_frame, text="Annuler", command=form.destroy).pack(side="left", padx=5)
+
+    # Add some polish
+    form.bind("<Return>", lambda e: enregistrer())
+    form.bind("<Escape>", lambda e: form.destroy())
+
+    # Focus first field
+    entries['nom'].focus_set()
 
     form.mainloop()

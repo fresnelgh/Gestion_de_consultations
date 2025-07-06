@@ -1,70 +1,84 @@
 from views.forgot_password_view import launch_forgot_password_window
-import tkinter as tk
-from tkinter import messagebox
 from models.model_utilisateurs import get_user_by_email, hash_password
+from views.registration_request import build_registration_request
 from views.vue_admin import launch_admin_view
-# from views.infirmier_view import launch_infirmier_view  # à créer ensuite
-from views.registration_request import launch_registration_request
+from views.vue_infirmier import launch_infirmier_view
+
+import customtkinter as ctk
+from tkinter import messagebox
+from PIL import Image
+from customtkinter import CTkImage
 
 def launch_login_window():
-    root = tk.Tk()
+    ctk.set_appearance_mode("light")
+    ctk.set_default_color_theme("green")
+
+    root = ctk.CTk()
     root.title("Connexion - JFN Health")
-    root.geometry("500x500")
-    root.configure(bg="#1C1B21")
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    root.geometry(f"{screen_width}x{screen_height}+0+0")
 
-    frame = tk.Frame(root, bg="#2A2A2E")
-    frame.place(relx=0.5, rely=0.5, anchor="center", width=350, height=350)
+    try:
+        bg_image = Image.open("assets/bg.jpg")
+        bg_ctk_image = CTkImage(light_image=bg_image, size=(1200, 960))
+        background_label = ctk.CTkLabel(root, image=bg_ctk_image, text="", fg_color="black")
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+    except Exception as e:
+        print("Erreur chargement fond :", e)
 
-    tk.Label(frame, text="Connexion", font=("Helvetica", 16, "bold"),
-             fg="white", bg="#2A2A2E").pack(pady=(20, 10))
+    form = ctk.CTkFrame(root, width=720, height=600, corner_radius=0, fg_color="#FFFFFF", border_width=1, border_color="#42A07C")
+    form.place(relx=0.3, rely=0.5, anchor="center")
+    form.lift()
 
-    tk.Label(frame, text="Email", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    entry_email = tk.Entry(frame, width=30, relief="flat", font=("Helvetica", 10),
-                           bg="#1C1B21", fg="white", insertbackground="white")
-    entry_email.pack(pady=5)
+    ctk.CTkLabel(form, text="Connexion", font=ctk.CTkFont(size=24, weight="bold"), text_color="#000000").pack(pady=(36, 24))
 
-    tk.Label(frame, text="Mot de passe", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    entry_password = tk.Entry(frame, show="*", width=30, relief="flat", font=("Helvetica", 10),
-                              bg="#1C1B21", fg="white", insertbackground="white")
-    entry_password.pack(pady=5)
+    email_frame = ctk.CTkFrame(form, fg_color="transparent", corner_radius=0)
+    email_frame.pack(pady=12)
+    try:
+        icon_email = CTkImage(Image.open("assets/icon_mail.png"), size=(24, 24))
+        ctk.CTkLabel(email_frame, image=icon_email, text="").pack(side="left", padx=12)
+    except:
+        pass
+    entry_email = ctk.CTkEntry(email_frame, placeholder_text="Email", width=240, height=34, corner_radius=0)
+    entry_email.pack(side="left")
+
+    pass_frame = ctk.CTkFrame(form, fg_color="transparent", corner_radius=0)
+    pass_frame.pack(pady=12)
+    try:
+        icon_pwd = CTkImage(Image.open("assets/icon_lock.png"), size=(24, 24))
+        ctk.CTkLabel(pass_frame, image=icon_pwd, text="").pack(side="left", padx=12)
+    except:
+        pass
+    entry_password = ctk.CTkEntry(pass_frame, placeholder_text="Mot de passe", show="*", width=240, height=34, corner_radius=0)
+    entry_password.pack(side="left")
 
     def login():
         email = entry_email.get()
         password = entry_password.get()
-
         if not email or not password:
             messagebox.showwarning("Erreur", "Veuillez remplir tous les champs.")
             return
-
         user = get_user_by_email(email)
         if user and user["password"] == hash_password(password):
-            role = user["role"]
             root.destroy()
-
-            if role == "admin":
+            if user["role"] == "admin":
                 launch_admin_view()
-            elif role == "chef_infirmier":
-                from views.vue_infirmier import launch_infirmier_view
-                launch_infirmier_view(user["full_name"])
+            elif user["role"] == "chef_infirmier":
+                launch_infirmier_view(user["id"], user["full_name"], user["email"])
             else:
-                messagebox.showerror("Erreur", f"Rôle non reconnu : {role}")
+                messagebox.showerror("Erreur", f"Rôle non reconnu : {user['role']}")
         else:
             messagebox.showerror("Erreur", "Email ou mot de passe invalide.")
 
-    tk.Button(frame, text="Se connecter", command=login,
-              bg="#42A07C", fg="white", font=("Helvetica", 10, "bold")).pack(pady=15)
+    ctk.CTkButton(form, text="Se connecter", command=login, width=408, height=42,
+                  fg_color="#42A07C", corner_radius=0, hover_color="#368f6e").pack(pady=18)
 
-    # === Bouton d'accès à l'inscription (réservé à l'admin) ===
-    def ouvrir_inscription():
-        root.destroy()
-        launch_admin_view()
+    ctk.CTkButton(form, text="Demander un compte",
+                  command=lambda: build_registration_request(form),
+                  fg_color="#42A07C", hover_color="#368f6e", width=264).pack(pady=6)
 
-    tk.Button(frame, text="➕ Ajouter un utilisateur", command=ouvrir_inscription,
-              bg="#1C1B21", fg="#42A07C", relief="flat",
-              font=("Helvetica", 9, "underline")).pack()
-    tk.Button(frame, text="Demander un compte", command=launch_registration_request,
-              bg="#42A07C", fg="white", font=("Helvetica", 10, "bold"), relief="flat").pack(pady=5)
-    tk.Button(frame, text="Mot de passe oublié ?", command=launch_forgot_password_window,
-              bg="#1C1B21", fg="#42A07C", font=("Helvetica", 9), relief="flat").pack()
+    ctk.CTkButton(form, text="Mot de passe oublié ?", command=lambda: launch_forgot_password_window(root),
+                  fg_color="transparent", text_color="#42A07C", hover_color="#E0E0E0", width=264).pack(pady=6)
 
     root.mainloop()

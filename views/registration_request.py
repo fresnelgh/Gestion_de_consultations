@@ -1,58 +1,105 @@
-# views/registration_request.py
-
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from controllers.registration_controller import envoyer_demande_inscription
+from controllers.navigation import open_login_window  # Import pour la navigation
+from PIL import Image
+from customtkinter import CTkImage
 
-def launch_registration_request():
-    root = tk.Tk()
-    root.title("Demande d'inscription - JFN Health")
-    root.geometry("420x450")
-    root.configure(bg="#1C1B21")
 
-    frame = tk.Frame(root, bg="#2A2A2E")
-    frame.place(relx=0.5, rely=0.5, anchor="center", width=350, height=380)
+def build_registration_request(parent_frame):
+    for widget in parent_frame.winfo_children():
+        widget.destroy()
 
-    tk.Label(frame, text="Demande d'inscription", font=("Helvetica", 14, "bold"),
-             fg="white", bg="#2A2A2E").pack(pady=(20, 10))
+    # Titre
+    ctk.CTkLabel(parent_frame,
+                 text="Demande d'inscription",
+                 font=ctk.CTkFont(size=20, weight="bold")).pack(pady=(20, 10))
 
-    # Nom
-    tk.Label(frame, text="Nom complet", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    entry_nom = tk.Entry(frame, width=30, bg="#1C1B21", fg="white", relief="flat", insertbackground="white")
-    entry_nom.pack(pady=5)
+    # === Chargement des icônes ===
+    try:
+        icon_user = CTkImage(Image.open("assets/icon_user.png"), size=(20, 20))
+        icon_email = CTkImage(Image.open("assets/icon_mail.png"), size=(20, 20))
+        icon_lock = CTkImage(Image.open("assets/icon_lock.png"), size=(20, 20))
+        icon_back = CTkImage(Image.open("assets/icon_back.png"), size=(15, 15))
+    except:
+        icon_user = icon_email = icon_lock = icon_back = None
 
-    # Email
-    tk.Label(frame, text="Email", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    entry_email = tk.Entry(frame, width=30, bg="#1C1B21", fg="white", relief="flat", insertbackground="white")
-    entry_email.pack(pady=5)
+    # === Bouton de retour ===
+    def retour_connexion():
+        parent_frame.master.destroy()  # Ferme la fenêtre actuelle
+        open_login_window()  # Ouvre la fenêtre de connexion
 
-    # Mot de passe
-    tk.Label(frame, text="Mot de passe", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    entry_password = tk.Entry(frame, width=30, show="*", bg="#1C1B21", fg="white", relief="flat", insertbackground="white")
-    entry_password.pack(pady=5)
+    btn_frame = ctk.CTkFrame(parent_frame, fg_color="transparent")
+    btn_frame.pack(fill="x", padx=20, pady=5)
 
-    # Rôle
-    tk.Label(frame, text="Rôle demandé", fg="white", bg="#2A2A2E").pack(anchor="w", padx=30)
-    role_var = tk.StringVar(value="chef_infirmier")
-    role_menu = tk.OptionMenu(frame, role_var, "chef_infirmier", "admin")
-    role_menu.config(bg="#1C1B21", fg="white", relief="flat", highlightbackground="#42A07C")
-    role_menu.pack(pady=5)
+    ctk.CTkButton(btn_frame,
+                  text="Retour à la connexion",
+                  command=retour_connexion,
+                  image=icon_back if icon_back else None,
+                  fg_color="transparent",
+                  text_color="#42A07C",
+                  hover_color="#F0F0F0",
+                  anchor="w",
+                  width=120).pack(side="left")
 
-    # Bouton soumettre
-    def soumettre_demande():
+    # === CHAMP Nom ===
+    nom_box = ctk.CTkFrame(parent_frame, fg_color="transparent")
+    nom_box.pack(pady=5)
+    if icon_user:
+        ctk.CTkLabel(nom_box, image=icon_user, text="").pack(side="left", padx=5)
+    entry_nom = ctk.CTkEntry(nom_box,
+                             placeholder_text="Nom complet",
+                             width=250)
+    entry_nom.pack(side="left")
+
+    # === CHAMP Email ===
+    email_box = ctk.CTkFrame(parent_frame, fg_color="transparent")
+    email_box.pack(pady=5)
+    if icon_email:
+        ctk.CTkLabel(email_box, image=icon_email, text="").pack(side="left", padx=5)
+    entry_email = ctk.CTkEntry(email_box,
+                               placeholder_text="Email",
+                               width=250)
+    entry_email.pack(side="left")
+
+    # === CHAMP Mot de passe ===
+    pass_box = ctk.CTkFrame(parent_frame, fg_color="transparent")
+    pass_box.pack(pady=5)
+    if icon_lock:
+        ctk.CTkLabel(pass_box, image=icon_lock, text="").pack(side="left", padx=5)
+    entry_password = ctk.CTkEntry(pass_box,
+                                  placeholder_text="Mot de passe",
+                                  show="*",
+                                  width=250)
+    entry_password.pack(side="left")
+
+    # === Rôle ===
+    role_var = ctk.StringVar(value="chef_infirmier")
+    role_menu = ctk.CTkOptionMenu(parent_frame,
+                                  variable=role_var,
+                                  values=["chef_infirmier", "admin"],
+                                  width=250)
+    role_menu.pack(pady=10)
+
+    # === Bouton de soumission ===
+    def soumettre():
         nom = entry_nom.get()
         email = entry_email.get()
         mot_de_passe = entry_password.get()
         role = role_var.get()
 
-        success, message = envoyer_demande_inscription(nom, email, mot_de_passe, role)
+        success, msg = envoyer_demande_inscription(nom, email, mot_de_passe, role)
         if success:
-            messagebox.showinfo("Succès", message)
-            root.destroy()
+            messagebox.showinfo("Succès", msg)
+            entry_nom.delete(0, 'end')
+            entry_email.delete(0, 'end')
+            entry_password.delete(0, 'end')
         else:
-            messagebox.showerror("Erreur", message)
+            messagebox.showerror("Erreur", msg)
 
-    tk.Button(frame, text="Soumettre la demande", command=soumettre_demande,
-              bg="#42A07C", fg="white", font=("Helvetica", 10, "bold")).pack(pady=20)
-
-    root.mainloop()
+    ctk.CTkButton(parent_frame,
+                  text="Soumettre la demande",
+                  command=soumettre,
+                  fg_color="#42A07C",
+                  hover_color="#368f6e",
+                  width=350).pack(pady=20)

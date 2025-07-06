@@ -1,13 +1,13 @@
 from config.database import get_connection
 
-def ajouter_consultation(date, patient, symptomes, traitement):
+def ajouter_consultation(date, heure_arrivee, heure_depart, patient, symptomes, traitement, posologie):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO consultations (date, patient, symptomes, traitement)
-            VALUES (%s, %s, %s, %s)
-        """, (date, patient, symptomes, traitement))
+            INSERT INTO consultations (date, heure_arrivee, heure_depart, patient, symptomes, traitement, posologie)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (date, heure_arrivee, heure_depart, patient, symptomes, traitement, posologie))
         conn.commit()
         conn.close()
         return True, "Consultation ajoutée avec succès."
@@ -19,7 +19,11 @@ def get_all_consultations():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT date, patient, symptomes, traitement FROM consultations ORDER BY date DESC")
+        cursor.execute("""
+            SELECT date, heure_arrivee, heure_depart, patient, symptomes, traitement, posologie
+            FROM consultations
+            ORDER BY date DESC
+        """)
         resultats = cursor.fetchall()
         conn.close()
         return resultats
@@ -32,7 +36,7 @@ def get_consultations_by_patient(nom_patient):
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT patient, date, symptomes, traitement
+            SELECT patient, date, heure_arrivee, heure_depart, symptomes, traitement, posologie
             FROM consultations
             WHERE patient LIKE %s
             ORDER BY date DESC

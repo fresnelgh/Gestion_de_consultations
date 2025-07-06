@@ -1,79 +1,162 @@
 # views/forgot_password_view.py
 
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from controllers.password_reset_controller import (
     envoyer_code_par_email,
     reinitialiser_mot_de_passe
 )
+from PIL import Image
+from customtkinter import CTkImage
 
-def launch_forgot_password_window():
-    root = tk.Toplevel()
-    root.title("Mot de passe oublié")
-    root.geometry("400x250")
-    root.configure(bg="#1C1B21")
 
-    tk.Label(root, text="🔐 Réinitialiser le mot de passe", font=("Helvetica", 14, "bold"),
-             fg="white", bg="#1C1B21").pack(pady=15)
+def go_back_to_login(main_root):
+    """Retour à la page de connexion"""
+    from views.vue_login import launch_login_window
+    main_root.destroy()  # Ferme la fenêtre actuelle
+    launch_login_window()  # Ouvre la fenêtre de connexion
 
-    tk.Label(root, text="Adresse e-mail", fg="white", bg="#1C1B21").pack()
-    entry_email = tk.Entry(root, width=30, bg="#2A2A2E", fg="white", insertbackground="white")
-    entry_email.pack(pady=5)
 
+def launch_forgot_password_window(main_root):
+    """Vue principale pour la réinitialisation de mot de passe"""
+    for widget in main_root.winfo_children():
+        widget.destroy()
+
+    # Charger l'icône de retour si disponible
+    try:
+        icon_back = CTkImage(Image.open("assets/icon_back.png"), size=(15, 15))
+    except:
+        icon_back = None
+
+    # Frame pour le bouton de retour
+    top_frame = ctk.CTkFrame(main_root, fg_color="transparent")
+    top_frame.pack(fill="x", padx=10, pady=5)
+
+    # Bouton de retour
+    ctk.CTkButton(top_frame,
+                  text="Retour",
+                  command=lambda: go_back_to_login(main_root),
+                  image=icon_back,
+                  fg_color="transparent",
+                  text_color="#42A07C",
+                  hover_color="#1C1B21",
+                  anchor="w",
+                  width=80).pack(side="left")
+
+    # Titre principal
+    ctk.CTkLabel(main_root,
+                 text="🔐 Réinitialiser le mot de passe",
+                 font=ctk.CTkFont(size=16, weight="bold")).pack(pady=15)
+
+    # Champ email
+    ctk.CTkLabel(main_root, text="Adresse e-mail").pack(pady=(10, 0))
+    entry_email = ctk.CTkEntry(main_root,
+                               width=280,
+                               placeholder_text="Entrez votre email")
+    entry_email.pack(pady=10)
+
+    # Bouton d'envoi de code
     def envoyer_code():
         email = entry_email.get().strip()
+        if not email:
+            messagebox.showerror("Erreur", "Veuillez entrer votre email")
+            return
+
         success, msg = envoyer_code_par_email(email)
         if success:
             messagebox.showinfo("Succès", msg)
-            root.destroy()
-            launch_code_verification(email)
+            launch_code_verification(main_root, email)
         else:
             messagebox.showerror("Erreur", msg)
 
-    tk.Button(root, text="📩 Envoyer le code", command=envoyer_code,
-              bg="#42A07C", fg="white", font=("Helvetica", 10, "bold")).pack(pady=15)
+    ctk.CTkButton(main_root,
+                  text="📩 Envoyer le code",
+                  command=envoyer_code,
+                  fg_color="#42A07C",
+                  hover_color="#368f6e").pack(pady=15)
 
-    root.mainloop()
 
+def launch_code_verification(main_root, email):
+    """Vue de vérification du code et nouveau mot de passe"""
+    for widget in main_root.winfo_children():
+        widget.destroy()
 
-def launch_code_verification(email):
-    code_window = tk.Toplevel()
-    code_window.title("Code de vérification")
-    code_window.geometry("400x350")
-    code_window.configure(bg="#1C1B21")
+    # Charger l'icône de retour si disponible
+    try:
+        icon_back = CTkImage(Image.open("assets/icon_back.png"), size=(15, 15))
+    except:
+        icon_back = None
 
-    tk.Label(code_window, text="✉️ Entrez le code reçu", font=("Helvetica", 14, "bold"),
-             fg="white", bg="#1C1B21").pack(pady=15)
+    # Frame pour le bouton de retour
+    top_frame = ctk.CTkFrame(main_root, fg_color="transparent")
+    top_frame.pack(fill="x", padx=10, pady=5)
 
-    tk.Label(code_window, text="Code", fg="white", bg="#1C1B21").pack()
-    entry_code = tk.Entry(code_window, width=20, bg="#2A2A2E", fg="white", insertbackground="white")
-    entry_code.pack(pady=5)
+    # Bouton de retour
+    ctk.CTkButton(top_frame,
+                  text="Retour",
+                  command=lambda: go_back_to_login(main_root),
+                  image=icon_back,
+                  fg_color="transparent",
+                  text_color="#42A07C",
+                  hover_color="#1C1B21",
+                  anchor="w",
+                  width=80).pack(side="left")
 
-    tk.Label(code_window, text="Nouveau mot de passe", fg="white", bg="#1C1B21").pack(pady=(15, 0))
-    entry_new = tk.Entry(code_window, width=30, show="*", bg="#2A2A2E", fg="white", insertbackground="white")
+    # Titre principal
+    ctk.CTkLabel(main_root,
+                 text="✉️ Vérification du code",
+                 font=ctk.CTkFont(size=16, weight="bold")).pack(pady=15)
+
+    # Champ code
+    ctk.CTkLabel(main_root, text="Code de vérification").pack()
+    entry_code = ctk.CTkEntry(main_root,
+                              width=200,
+                              placeholder_text="Code à 6 chiffres")
+    entry_code.pack(pady=10)
+
+    # Champ nouveau mot de passe
+    ctk.CTkLabel(main_root, text="Nouveau mot de passe").pack(pady=(15, 0))
+    entry_new = ctk.CTkEntry(main_root,
+                             width=280,
+                             show="*",
+                             placeholder_text="********")
     entry_new.pack(pady=5)
 
-    tk.Label(code_window, text="Confirmer mot de passe", fg="white", bg="#1C1B21").pack(pady=(10, 0))
-    entry_confirm = tk.Entry(code_window, width=30, show="*", bg="#2A2A2E", fg="white", insertbackground="white")
+    # Champ confirmation mot de passe
+    ctk.CTkLabel(main_root, text="Confirmer le mot de passe").pack(pady=(10, 0))
+    entry_confirm = ctk.CTkEntry(main_root,
+                                 width=280,
+                                 show="*",
+                                 placeholder_text="********")
     entry_confirm.pack(pady=5)
 
+    # Bouton de validation
     def valider_reinitialisation():
         code = entry_code.get().strip()
         new = entry_new.get()
         confirm = entry_confirm.get()
 
+        if not code or len(code) != 6:
+            messagebox.showerror("Erreur", "Le code doit contenir 6 chiffres")
+            return
+
+        if not new or len(new) < 8:
+            messagebox.showerror("Erreur", "Le mot de passe doit contenir au moins 8 caractères")
+            return
+
         if new != confirm:
-            messagebox.showerror("Erreur", "Les mots de passe ne correspondent pas.")
+            messagebox.showerror("Erreur", "Les mots de passe ne correspondent pas")
             return
 
         success, msg = reinitialiser_mot_de_passe(email, code, new)
         if success:
             messagebox.showinfo("Succès", msg)
-            code_window.destroy()
+            go_back_to_login(main_root)
         else:
             messagebox.showerror("Erreur", msg)
 
-    tk.Button(code_window, text="✅ Réinitialiser", command=valider_reinitialisation,
-              bg="#42A07C", fg="white", font=("Helvetica", 10, "bold")).pack(pady=20)
-
-    code_window.mainloop()
+    ctk.CTkButton(main_root,
+                  text="✅ Réinitialiser le mot de passe",
+                  command=valider_reinitialisation,
+                  fg_color="#42A07C",
+                  hover_color="#368f6e").pack(pady=20)

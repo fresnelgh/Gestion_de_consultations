@@ -1,64 +1,85 @@
-# controllers/registration_controller.py
-
 from models.registration_model import add_pending_user, is_email_pending
-from models.model_utilisateurs import get_user_by_email
+from models.model_utilisateurs import get_all_users
 import smtplib, ssl
 from email.message import EmailMessage
+from config.database import get_connection
+from models.model_demandes import ajouter_demande
 
 # Adresse de l'expéditeur (paramètre fixe)
 EMAIL_SENDER = "fresnelktf@gmail.com"
 EMAIL_PASSWORD = "pody jqnw ucdq vzoi"
 
-# Fonction appelée depuis la vue
+
 def envoyer_demande_inscription(full_name, email, password, role):
     if not full_name or not email or not password or not role:
         return False, "Tous les champs sont requis."
 
-    # Vérifie si déjà en attente
     if is_email_pending(email):
         return False, "Une demande pour cet e-mail est déjà en attente."
 
-    # Enregistre la demande
     if add_pending_user(full_name, email, password, role):
-        # Trouve un chef infirmier existant
-        destinataire = get_chef_infirmier_email()
-        if destinataire:
-            envoyer_mail_validation(destinataire, full_name, email, role)
-            return True, "Demande envoyée. En attente de validation."
+        # Recherche un validateur (chef infirmier ou admin)
+        validateur = trouver_validateur()
+
+        if validateur:
+            envoyer_mail_validation(validateur['email'], full_name, email, role)
+            ajouter_demande(full_name, email, password, role)
+            return True, f"Demande envoyée à {validateur['full_name']} pour validation."
+
         else:
-            return False, "Aucun chef infirmier trouvé pour valider l'inscription."
+            return False, "Aucun validateur (admin ou chef infirmier) disponible."
     else:
         return False, "Erreur lors de l'enregistrement de la demande."
 
-# Cherche un chef infirmier existant
-def get_chef_infirmier_email():
-    # Idéalement, retourne le premier chef infirmier actif
-    for email_test in ["chef1@example.com", "chef2@example.com"]:
-        user = get_user_by_email(email_test)
-        if user and user["role"] == "chef_infirmier":
-            return user["email"]
-    return None
 
-# Envoie un mail au chef infirmier
+def trouver_validateur():
+    """Recherche un admin ou chef infirmier actif dans la base de données"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Requête pour trouver un admin ou chef infirmier (priorité aux admins)
+        cursor.execute("""
+            SELECT full_name, email, role 
+            FROM users 
+            WHERE role IN ('admin', 'chef_infirmier')
+            ORDER BY CASE WHEN role = 'admin' THEN 1 ELSE 2 END
+            LIMIT 1
+        """)
+
+        validateur = cursor.fetchone()
+        conn.close()
+
+        return validateur if validateur else None
+
+    except Exception as e:
+        print("Erreur recherche validateur:", e)
+        return None
+
+
 def envoyer_mail_validation(destinataire_email, nom_demandeur, email_demandeur, role):
     try:
         msg = EmailMessage()
-        msg['Subject'] = 'Nouvelle demande d’inscription - JFN Health'
+        msg['Subject'] = 'Nouvelle demande d\'inscription - JFN Health'
         msg['From'] = EMAIL_SENDER
         msg['To'] = destinataire_email
 
         contenu = f"""
 Bonjour,
 
-Une nouvelle demande d'inscription a été faite :
+Une nouvelle demande d'inscription nécessite votre validation :
 
-Nom : {nom_demandeur}
-Email : {email_demandeur}
-Rôle demandé : {role}
+• Nom : {nom_demandeur}
+• Email : {email_demandeur} 
+• Rôle demandé : {role}
 
-Veuillez valider cette demande depuis l'administration JFN.
+Action requise:
+1. Connectez-vous à l'administration JFN
+2. Allez dans l'onglet "Demandes"
+3. Validez ou rejetez cette demande
 
-Merci.
+Cordialement,
+Système de gestion JFN Health
 """
         msg.set_content(contenu)
 
@@ -68,4 +89,4 @@ Merci.
             server.send_message(msg)
 
     except Exception as e:
-        print("Erreur lors de l'envoi de l'email :", e)
+        print("Erreur envoi email:", e)
